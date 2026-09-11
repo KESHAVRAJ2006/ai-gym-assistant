@@ -1,0 +1,117 @@
+# ==========================================================================
+#  Render Blueprint - deploys the whole system in one click.
+#
+#  How to use it:
+#    1. Push this repository to GitHub.
+#    2. Render dashboard -> New -> Blueprint -> pick the repo.
+#    3. Render reads this file and creates three resources:
+#         aigym-db   PostgreSQL (free)
+#         aigym-api  FastAPI backend (free web service)
+#         aigym-web  React static site (free)
+#    4. After the first deploy, set the two cross-references described below.
+#
+#  Free-tier facts you must plan around, not discover at 2 a.m.:
+#    * A free web service SLEEPS after 15 minutes idle and takes ~50 s to
+#      wake. Open the site a minute before your demo.
+#    * A free Postgres instance EXPIRES 30 days after creation and is then
+#      deleted. Diarise it. Export anything you need for the report first.
+#    * There is no MongoDB on Render - use MongoDB Atlas free (M0). The app
+#      runs without it; you just lose the raw-signal archive, which means no
+#      session replay and no per-rep metrics on real data.
+# ==========================================================================
+
+databases:
+  - name: aigym-db
+    databaseName: aigym
+    user: aigym
+    plan: free
+
+services:
+  # ------------------------------------------------------------- backend --
+  - type: web
+    name: aigym-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    region: singapore          # closest free region to India; change if needed
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    # `bash start.sh` rather than `./start.sh`: git on Windows does not
+    # preserve the executable bit, so ./start.sh would fail with
+    # "Permission denied" on the very first deploy.
+    startCommand: bash start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENV
+        value: production
+
+      # Wired automatically from the database above.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aigym-db
+          property: connectionString
+
+      # Render generates a long random secret and keeps it out of git.
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRE_MINUTES
+        value: 10080
+
+      # SET THIS AFTER THE FIRST DEPLOY to your static-site URL, e.g.
+      #   https://aigym-web.onrender.com
+      # (the backend also allows any *.onrender.com origin as a safety net).
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ---- optional services: leave blank and the app still works ----
+      - key: MONGO_URL          # MongoDB Atlas connection string
+        sync: false
+      - key: MONGO_DB
+        value: aigym
+      - key: MQTT_HOST          # e.g. broker.emqx.io
+        sync: false
+      - key: MQTT_PORT
+        value: 1883
+      - key: MQTT_USERNAME
+        sync: false
+      - key: MQTT_PASSWORD
+        sync: false
+      - key: MQTT_TOPIC
+        value: gym/+/imu
+      - key: ANTHROPIC_API_KEY  # blank => deterministic rule-based coach
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-5
+
+  # ------------------------------------------------------------ frontend --
+  - type: web
+    name: aigym-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    # A single-page app must serve index.html for every unknown path, or a
+    # hard refresh on /workout returns 404.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      # getUserMedia is blocked unless the page explicitly permits it.
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(self), microphone=(), geolocation=()
+    envVars:
+      # SET THIS AFTER THE FIRST DEPLOY to your backend URL, e.g.
+      #   https://aigym-api.onrender.com
+      # Vite inlines it at BUILD time, so changing it requires a redeploy,
+      # not just a restart.
+      - key: VITE_API_BASE
+        sync: false
