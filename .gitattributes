@@ -1,0 +1,28 @@
+# Normalise line endings.
+#
+# This file is load-bearing for deployment, not cosmetic. You develop on
+# Windows and Render runs Linux. Without the rule below, git checks out
+# start.sh with CRLF endings and the deploy dies with
+#   bash: start.sh: line 2: $'\r': command not found
+# which is a genuinely horrible thing to debug at midnight.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.py      text eol=lf
+*.js      text eol=lf
+*.jsx     text eol=lf
+*.json    text eol=lf
+*.md      text eol=lf
+*.yaml    text eol=lf
+*.yml     text eol=lf
+*.ino     text eol=lf
+
+# Windows-only files keep CRLF.
+*.bat     text eol=crlf
+
+# Never touch binaries.
+*.png     binary
+*.jpg     binary
+*.task    binary
+*.wasm    binary
+*.joblib  binary

@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# Only needed on your laptop for evaluation figures + tests.
+matplotlib>=3.9,<4.0
+pandas>=2.2,<3.0
+pytest>=8.3,<9.0
+pytest-asyncio>=0.24,<1.0
