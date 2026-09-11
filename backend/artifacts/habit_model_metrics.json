@@ -1,0 +1,10 @@
+{
+  "model_kind": "xgboost",
+  "n_train": 13650,
+  "n_test": 4550,
+  "positive_rate": 0.0995,
+  "roc_auc": 0.925,
+  "accuracy": 0.9284,
+  "brier": 0.0522,
+  "data_source": "synthetic population (see habit_model.synthesize)"
+}
