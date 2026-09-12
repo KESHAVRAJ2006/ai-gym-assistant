@@ -64,11 +64,12 @@ services:
       - key: JWT_EXPIRE_MINUTES
         value: 10080
 
-      # SET THIS AFTER THE FIRST DEPLOY to your static-site URL, e.g.
-      #   https://aigym-web.onrender.com
-      # (the backend also allows any *.onrender.com origin as a safety net).
+      # The deployed front-end origin. This is a public URL, not a secret, so
+      # it lives here rather than being typed into the dashboard - one less
+      # manual step, and it survives recreating the service.
+      # Change it if you rename the static site.
       - key: CORS_ORIGINS
-        sync: false
+        value: https://aigym-web.onrender.com
 
       # ---- optional services: leave blank and the app still works ----
       - key: MONGO_URL          # MongoDB Atlas connection string
@@ -115,9 +116,8 @@ services:
         name: Permissions-Policy
         value: camera=(self), microphone=(), geolocation=()
     envVars:
-      # SET THIS AFTER THE FIRST DEPLOY to your backend URL, e.g.
-      #   https://aigym-api.onrender.com
-      # Vite inlines it at BUILD time, so changing it requires a redeploy,
-      # not just a restart.
+      # Also a public URL, not a secret - lives here for the same reason as
+      # CORS_ORIGINS above. Vite inlines it at BUILD time: if you ever change
+      # this value, you must trigger a new build, a restart is not enough.
       - key: VITE_API_BASE
-        sync: false
+        value: https://aigym-api.onrender.com
