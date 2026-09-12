@@ -25,6 +25,12 @@ databases:
     databaseName: aigym
     user: aigym
     plan: free
+    # MUST match the region of aigym-web below. Render's internal network is
+    # per-region: a service in Singapore cannot resolve the internal hostname
+    # of a database in Oregon, and the only symptom is
+    #   failed to resolve host 'dpg-xxxxx-a': Name or service not known
+    # Omitting this line silently defaults the database to Oregon.
+    region: singapore
 
 services:
   # ------------------------------------------------------------- backend --
