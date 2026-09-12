@@ -86,6 +86,15 @@ python -m venv .venv
 .venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
+Optional — connect the raw-signal archive (MongoDB Atlas free tier):
+
+```bash
+.venv\Scripts\python.exe scripts/setup_mongo.py
+```
+
+Paste your Atlas connection string at the hidden prompt; it validates,
+connects, checks write permission, and saves `MONGO_URL` to `backend/.env`.
+
 **Verify:** open <http://127.0.0.1:8000/health>. You should see
 `"status":"ok"` and `"database":{"ok":true,...}`. Mongo and MQTT reporting
 `disabled` is correct and expected — they are optional.

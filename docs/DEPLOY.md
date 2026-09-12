@@ -106,7 +106,20 @@ chart, session replay, and per-rep metrics on real data.
    free tier has no fixed outbound IP, so an allow-list cannot work.
 5. **Connect** → **Drivers** → copy the `mongodb+srv://...` string and put your
    password in it.
-6. In Render, on **aigym-api**, set `MONGO_URL` to that string.
+6. Verify the string works **before** putting it anywhere, using the helper:
+
+```powershell
+cd C:\Users\kesha\desktop\ai-gym-assistant\backend
+.venv\Scripts\python.exe scripts/setup_mongo.py
+```
+
+Paste the string at the prompt (it is hidden as you type). The script checks
+the shape, connects, proves the user can actually *write* and not merely
+connect, and saves `MONGO_URL` into `backend/.env` for local development.
+Every failure it can detect comes back as one line with the exact Atlas menu
+path that fixes it, instead of a pymongo traceback.
+
+7. In Render, on **aigym-api**, set `MONGO_URL` to that same string.
 
 **Verify:** `/health` now shows `"mongo":"connected (aigym)"`.
 
