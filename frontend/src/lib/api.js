@@ -7,8 +7,35 @@
  * section because it is vulnerable to XSS in a way an httpOnly cookie is not.
  */
 
-// In dev VITE_API_BASE is blank and Vite proxies /api to the backend.
-export const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
+/**
+ * Where the backend lives.
+ *
+ * 1. VITE_API_BASE, baked in at build time. This is the intended mechanism.
+ * 2. If that is empty AND we are served from *.onrender.com, derive the API
+ *    host from our own hostname (aigym-web -> aigym-api).
+ * 3. Otherwise empty, which in dev makes calls relative so Vite can proxy.
+ *
+ * Step 2 exists because of a real failure: Render reported a deploy as Live
+ * without rebuilding the bundle, so VITE_API_BASE never made it into the
+ * JavaScript. Every API call then went to the static site itself, whose
+ * SPA rewrite answers POSTs with an empty 200 - which looks like a totally
+ * unrelated frontend crash. Deriving the host makes the app correct even
+ * when the build-time variable goes missing.
+ */
+function resolveApiBase() {
+  const fromEnv = (import.meta.env.VITE_API_BASE || "").trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+
+  if (typeof window !== "undefined") {
+    const { hostname, protocol } = window.location;
+    if (hostname.endsWith(".onrender.com") && hostname.includes("-web")) {
+      return `${protocol}//${hostname.replace("-web", "-api")}`;
+    }
+  }
+  return "";
+}
+
+export const API_BASE = resolveApiBase();
 
 const TOKEN_KEY = "aigym_token";
 const USER_KEY = "aigym_user";
@@ -84,10 +111,33 @@ async function request(path, { method = "GET", body, auth = true } = {}) {
   if (res.status === 204) return null;
 
   const text = await res.text();
+
+  // An OK response with no body means we are not talking to the API at all -
+  // almost always because API_BASE is empty and the request hit the static
+  // site, whose SPA rewrite answers with an empty 200. Returning null here
+  // made callers blow up later with "Cannot read properties of null", which
+  // points at the wrong file entirely. Fail loudly, and say why.
+  if (res.ok && !text.trim()) {
+    throw new ApiError(
+      `The server returned an empty response for ${path}. The app is probably ` +
+        `pointing at the wrong address (currently "${API_BASE || "same origin"}"). ` +
+        `Rebuild the front-end with VITE_API_BASE set to the backend URL.`,
+      res.status
+    );
+  }
+
   let data = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
+    // HTML instead of JSON is the same misconfiguration wearing a hat.
+    if (res.ok && text.trimStart().startsWith("<")) {
+      throw new ApiError(
+        `Expected JSON from ${path} but received an HTML page. The app is ` +
+          `pointing at the wrong address (currently "${API_BASE || "same origin"}").`,
+        res.status
+      );
+    }
     data = { detail: text };
   }
 
