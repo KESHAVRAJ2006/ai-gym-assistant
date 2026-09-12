@@ -183,11 +183,25 @@ def read_uri() -> str:
 
     print("\n  Paste your connection string from:")
     print("    Atlas > Connect > Drivers > Python")
-    print("\n  It is hidden as you paste (right-click pastes in PowerShell).\n")
+    print("\n  Paste with Ctrl+V (or Ctrl+Shift+V, or right-click), then Enter.")
+    print("  The text stays HIDDEN while you type - that is normal.\n")
     try:
         raw = getpass.getpass("  Connection string: ")
     except (EOFError, OSError):
-        raw = input("  Connection string: ")
+        raw = ""
+
+    # Some Windows terminals refuse to paste into a hidden prompt, and because
+    # nothing appears on screen the user cannot tell whether it worked. Rather
+    # than dying with "Nothing was entered", fall back to a visible prompt so
+    # they can SEE the paste land and fix it if it did not.
+    if not raw.strip():
+        print("\n  Nothing was received from the hidden prompt.")
+        print("  Trying again with a VISIBLE prompt - the string will show on")
+        print("  screen this time, which is fine on your own machine.\n")
+        try:
+            raw = input("  Connection string: ")
+        except EOFError:
+            raw = ""
     return raw.strip().strip('"').strip("'")
 
 
