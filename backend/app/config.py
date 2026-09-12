@@ -39,6 +39,11 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
 
+    # Comma-separated emails granted admin access. If left blank the very
+    # first registered account (id 1) is the admin, which is what you want on
+    # a demo deployment where you register once and never think about it again.
+    ADMIN_EMAILS: str = ""
+
     # ---- optional: mongo ----
     MONGO_URL: str = ""
     MONGO_DB: str = "aigym"
@@ -82,6 +87,10 @@ class Settings(BaseSettings):
     def cors_list(self) -> list[str]:
         raw = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
         return raw or ["*"]
+
+    @property
+    def admin_emails(self) -> set[str]:
+        return {e.strip().lower() for e in self.ADMIN_EMAILS.split(",") if e.strip()}
 
     @property
     def mongo_enabled(self) -> bool:

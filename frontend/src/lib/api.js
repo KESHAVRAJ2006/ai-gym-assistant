@@ -200,6 +200,11 @@ export const api = {
   simulateImu: (q) =>
     request(`/api/imu/simulate?${new URLSearchParams(q)}`, { method: "POST" }),
 
+  // ---- admin ----
+  adminOverview: (days = 30) => request(`/api/admin/overview?days=${days}`),
+  adminSystem: () => request("/api/admin/system"),
+  adminModelCard: () => request("/api/admin/model-card"),
+
   // ---- meta ----
   health: () => request("/health", { auth: false }),
 };

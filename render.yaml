@@ -64,6 +64,11 @@ services:
       - key: JWT_EXPIRE_MINUTES
         value: 10080
 
+      # Who can open /admin. Blank => the first registered account.
+      # Set this to your own email before showing the deployment to anyone.
+      - key: ADMIN_EMAILS
+        sync: false
+
       # The deployed front-end origin. This is a public URL, not a secret, so
       # it lives here rather than being typed into the dashboard - one less
       # manual step, and it survives recreating the service.

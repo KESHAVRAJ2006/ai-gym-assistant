@@ -303,3 +303,53 @@ def test_fusion_rejects_imu_bumps_the_camera_never_saw():
         assert res.fused_count == n_reps, f"seed {seed}: fused {res.fused_count}"
 
     assert saw_overcount, "no seed produced an IMU over-count - test is vacuous"
+
+
+# ----------------------------------------------------------------- admin --
+def test_admin_overview_is_reachable_by_first_user(client, auth):
+    """
+    With ADMIN_EMAILS unset the first registered account is the admin. The
+    fixture user is id 1 in this throwaway database, so it qualifies.
+    """
+    headers, _ = auth
+    r = client.get("/api/admin/overview", headers=headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["totals"]["users"] >= 1
+    assert "accuracy" in body
+    assert isinstance(body["users"], list)
+    assert body["users"][0]["email"]
+
+
+def test_admin_system_reports_subsystems(client, auth):
+    headers, _ = auth
+    body = client.get("/api/admin/system", headers=headers).json()
+    assert body["database"]["ok"] is True
+    assert "mongo" in body and "mqtt" in body
+    assert body["fusion_defaults"]["match_window_s"] > 0
+
+
+def test_admin_model_card_carries_the_synthetic_warning(client, auth):
+    headers, _ = auth
+    body = client.get("/api/admin/model-card", headers=headers).json()
+    assert body["roc_auc"] > 0.7
+    assert "SYNTHETIC" in body["warning"]
+    assert len(body["features"]) == 9
+
+
+def test_admin_is_refused_for_a_non_admin_user(client):
+    """A second account must not be able to read system-wide analytics."""
+    r = client.post("/api/auth/register", json={
+        "email": f"normal_{uuid.uuid4().hex[:8]}@example.com",
+        "password": "hunter2pass",
+    })
+    assert r.status_code == 201
+    other = {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+    assert r.json()["user"]["is_admin"] is False
+    for path in ("/api/admin/overview", "/api/admin/system", "/api/admin/model-card"):
+        assert client.get(path, headers=other).status_code == 403, path
+
+
+def test_admin_endpoints_require_authentication(client):
+    assert client.get("/api/admin/overview").status_code == 401

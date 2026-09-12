@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.config import settings
 from app.db import Base, engine
-from app.routers import auth, chat, diet, habits, imu, sessions, ws
+from app.routers import admin, auth, chat, diet, habits, imu, sessions, ws
 from app.services import mongo, mqtt_subscriber
 from app.services.imu_bus import bus
 
@@ -76,6 +76,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(sessions.router)
 app.include_router(diet.router)
 app.include_router(habits.router)

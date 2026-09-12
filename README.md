@@ -172,6 +172,25 @@ respectable table — just say which you have.
 
 ---
 
+## Admin dashboard
+
+Sign in as the **first registered account** (or set `ADMIN_EMAILS` on the
+backend) and an **Admin** tab appears in the navigation. It shows system-wide
+analytics rather than one user's:
+
+- platform totals (users, sessions, reps, diet plans, habit logs)
+- **counting accuracy across every labelled session from every user** - the
+  system-level evidence for the fusion claim
+- activity over time and volume by exercise
+- the most common form faults across all recorded repetitions
+- a user table with per-user session, rep and form-score counts
+- live service health (database, MongoDB, MQTT, IMU bus) and the active
+  fusion thresholds
+- the habit model's card, carrying its own "synthetic data" warning
+
+Admin status is decided from configuration, not a database column, so there
+is no row a user can write to in order to promote themselves.
+
 ## Tests
 
 ```bash
@@ -179,7 +198,13 @@ cd backend
 .venv\Scripts\python.exe -m pytest -v
 ```
 
-17 integration tests, ~13 seconds. They drive real HTTP and WebSocket requests
+22 integration tests, ~10 seconds. To regenerate
+[`docs/TESTING_REPORT.md`](docs/TESTING_REPORT.md) from a real run, with
+coverage:
+
+```bash
+.venv\Scripts\python.exe scripts/generate_test_report.py
+``` They drive real HTTP and WebSocket requests
 against a temporary database. Three of them assert the core claim directly:
 fusion beats camera under occlusion, the clock offset is recovered, and IMU
 bumps the camera never saw are rejected.
@@ -227,7 +252,7 @@ frontend/src/
   pages/              Auth, Dashboard, Workout, Sessions, Diet, Habits, Coach
   lib/                api client, MediaPipe wrapper
 firmware/             ESP32 + MPU6050 sketch
-docs/                 DEPLOY, CITATIONS, DEMO_SCRIPT
+docs/                 DEPLOY, CITATIONS, DEMO_SCRIPT, TESTING_REPORT
 ```
 
 ---

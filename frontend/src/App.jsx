@@ -2,6 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { api, clearSession, getStoredUser, getToken, setSession } from "./lib/api.js";
+import Admin from "./pages/Admin.jsx";
 import Auth from "./pages/Auth.jsx";
 import Coach from "./pages/Coach.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -102,6 +103,15 @@ export default function App() {
             </NavLink>
           ))}
           <span className="spacer" />
+          {user.is_admin && (
+            <NavLink
+              to="/admin"
+              className={({ isActive }) => `tab${isActive ? " active" : ""}`}
+              style={{ color: "var(--warn)" }}
+            >
+              Admin
+            </NavLink>
+          )}
           <NavLink to="/profile" className={({ isActive }) => `tab${isActive ? " active" : ""}`}>
             {user.full_name || user.email.split("@")[0]}
           </NavLink>
@@ -120,6 +130,7 @@ export default function App() {
             <Route path="/habits" element={<Habits />} />
             <Route path="/coach" element={<Coach />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

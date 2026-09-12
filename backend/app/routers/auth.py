@@ -6,12 +6,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.deps import get_current_user
+from app.deps import get_current_user, is_admin
 from app.models import User
 from app.schemas import LoginRequest, TokenOut, UserCreate, UserOut, UserUpdate
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+def _out(user: User) -> UserOut:
+    """Serialise a user, stamping on the computed (non-column) admin flag."""
+    out = UserOut.model_validate(user)
+    out.is_admin = is_admin(user)
+    return out
 
 
 @router.post("/register", response_model=TokenOut, status_code=status.HTTP_201_CREATED)
@@ -38,7 +45,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)) -> TokenOut:
     db.refresh(user)
 
     token, expires = create_access_token(user.id, user.email)
-    return TokenOut(access_token=token, expires_in=expires, user=UserOut.model_validate(user))
+    return TokenOut(access_token=token, expires_in=expires, user=_out(user))
 
 
 @router.post("/login", response_model=TokenOut)
@@ -50,12 +57,12 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenOut:
         raise HTTPException(status_code=401, detail="Incorrect email or password")
 
     token, expires = create_access_token(user.id, user.email)
-    return TokenOut(access_token=token, expires_in=expires, user=UserOut.model_validate(user))
+    return TokenOut(access_token=token, expires_in=expires, user=_out(user))
 
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)) -> UserOut:
-    return UserOut.model_validate(user)
+    return _out(user)
 
 
 @router.patch("/me", response_model=UserOut)
@@ -69,4 +76,4 @@ def update_me(
             setattr(user, field, value)
     db.commit()
     db.refresh(user)
-    return UserOut.model_validate(user)
+    return _out(user)
