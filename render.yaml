@@ -4,8 +4,7 @@
 #  How to use it:
 #    1. Push this repository to GitHub.
 #    2. Render dashboard -> New -> Blueprint -> pick the repo.
-#    3. Render reads this file and creates three resources:
-#         aigym-db   PostgreSQL (free)
+#    3. Render reads this file and creates two resources:
 #         aigym-api  FastAPI backend (free web service)
 #         aigym-web  React static site (free)
 #    4. After the first deploy, set the two cross-references described below.
@@ -13,24 +12,17 @@
 #  Free-tier facts you must plan around, not discover at 2 a.m.:
 #    * A free web service SLEEPS after 15 minutes idle and takes ~50 s to
 #      wake. Open the site a minute before your demo.
-#    * A free Postgres instance EXPIRES 30 days after creation and is then
-#      deleted. Diarise it. Export anything you need for the report first.
+#    * PostgreSQL is on Neon (free, does not expire), NOT Render - Render's
+#      free Postgres is deleted after 30 days.
 #    * There is no MongoDB on Render - use MongoDB Atlas free (M0). The app
 #      runs without it; you just lose the raw-signal archive, which means no
 #      session replay and no per-rep metrics on real data.
 # ==========================================================================
 
-databases:
-  - name: aigym-db
-    databaseName: aigym
-    user: aigym
-    plan: free
-    # MUST match the region of aigym-web below. Render's internal network is
-    # per-region: a service in Singapore cannot resolve the internal hostname
-    # of a database in Oregon, and the only symptom is
-    #   failed to resolve host 'dpg-xxxxx-a': Name or service not known
-    # Omitting this line silently defaults the database to Oregon.
-    region: singapore
+# No `databases:` block on purpose. Render's free Postgres is DELETED 30 days
+# after creation, which took the live site down once already. The database
+# now lives on Neon's free tier (https://neon.tech), which does not expire.
+# Its connection string is pasted into DATABASE_URL on aigym-api by hand.
 
 services:
   # ------------------------------------------------------------- backend --
@@ -52,11 +44,11 @@ services:
       - key: ENV
         value: production
 
-      # Wired automatically from the database above.
+      # Neon connection string, e.g.
+      #   postgresql://user:pw@ep-xxx.ap-southeast-1.aws.neon.tech/aigym?sslmode=require
+      # Set by hand in the dashboard; config.py adds the psycopg driver prefix.
       - key: DATABASE_URL
-        fromDatabase:
-          name: aigym-db
-          property: connectionString
+        sync: false
 
       # Render generates a long random secret and keeps it out of git.
       - key: JWT_SECRET
